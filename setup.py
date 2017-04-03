@@ -97,4 +97,4 @@ subprocess.check_call("sudo pip install svgwrite timeout-decorator", shell=True)
 
 setup(**setup_parameters)
 
-subprocess.check_call("sudo chmod +x /home/pi/oprint/lib/python2.7/site-packages/octoprint_Locbit/qr.py", shell=True)
+#subprocess.check_call("sudo chmod +x /home/pi/oprint/lib/python2.7/site-packages/octoprint_Locbit/qr.py", shell=True)
