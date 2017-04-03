@@ -1,3 +1,4 @@
+import subprocess
 # coding=utf-8
 
 ########################################################################################################################
@@ -33,7 +34,7 @@ plugin_url = "www.locbit.com"
 plugin_license = "AGPLv3"
 
 # Any additional requirements besides OctoPrint should be listed here
-plugin_requires = []
+plugin_requires = ['SimpleCV==1.3']
 
 ### --------------------------------------------------------------------------------------------------------------------
 ### More advanced options that you usually shouldn't have to touch follow after this point
@@ -44,7 +45,7 @@ plugin_requires = []
 plugin_additional_data = []
 
 # Any additional python packages you need to install with your plugin that are not contained in <plugin_package>.*
-plugin_additional_packages = []
+plugin_additional_packages = ['svgwrite', 'timeout-decorator']
 
 # Any python packages within <plugin_package>.* you do NOT want to install with your plugin
 plugin_ignored_packages = []
@@ -57,7 +58,7 @@ plugin_ignored_packages = []
 # Example:
 #     plugin_requires = ["someDependency==dev"]
 #     additional_setup_parameters = {"dependency_links": ["https://github.com/someUser/someRepo/archive/master.zip#egg=someDependency-dev"]}
-additional_setup_parameters = {}
+additional_setup_parameters = {"dependency_links": ["https://github.com/sightmachine/SimpleCV/archive/1.3.zip#egg=SimpleCV-1.3"]}
 
 ########################################################################################################################
 
@@ -91,4 +92,8 @@ if len(additional_setup_parameters):
 	from octoprint.util import dict_merge
 	setup_parameters = dict_merge(setup_parameters, additional_setup_parameters)
 
+subprocess.check_call("sudo apt-get update && sudo apt-get install ipython python-opencv python-scipy python-numpy python-setuptools python-pip python-pygame python-zbar", shell=True)
+
 setup(**setup_parameters)
+
+subprocess.check_call("sudo chmod +x /home/pi/oprint/lib/python2.7/site-packages/octoprint_Locbit/qr.py", shell=True)
