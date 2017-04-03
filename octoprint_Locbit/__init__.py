@@ -15,6 +15,12 @@ import os
 from shutil import copyfile
 import urllib
 from urlparse import urlsplit
+from SimpleCV import Color, Camera, Display, JpegStreamCamera
+import time
+import timeout_decorator
+from timeout_decorator import TimeoutError
+import sys
+
 
 Layer = 0
 uid = "55de667a295efb62093205e4"
@@ -24,6 +30,7 @@ url = "https://test-api.locbit.com/endpoint"
 status_url = 'https://test-api.locbit.com/statusByLid'
 
 HTTP_REQUEST_TIMEOUT=50
+QR_TIMEOUT_SECONDS = 15
 
 class LocbitPlugin(octoprint.plugin.StartupPlugin,
 			octoprint.plugin.TemplatePlugin,
@@ -106,7 +113,30 @@ class LocbitPlugin(octoprint.plugin.StartupPlugin,
 
                         setting_dict[setting_key] = setting_value
 
-                return setting_dict 
+                return setting_dict
+
+        @timeout_decorator.timeout(QR_TIMEOUT_SECONDS)
+        def scan(self, horizontal_flip=False, camera_base_url='http://octopi.local'):
+                jc = JpegStreamCamera("{}/webcam/?action=stream".format(camera_base_url))
+                qrcode = []
+
+                while(not qrcode):
+                        img_og = jc.getImage() #gets image from the camera
+
+                        img = img_og
+
+                        if horizontal_flip:
+                                horizontal_flip = False
+                                img = img_og.flipHorizontal()
+                        else:
+                                horizontal_flip = True
+
+                        qrcode = img.findBarcode() #finds qr data from image
+
+                        if(qrcode is not None): #if there is some data processed
+                                qrcode = qrcode[0]
+                                result = str(qrcode.data)
+                                return result 
 
         def _get_printer_job_info(self):
                 job_uri = 'http://localhost/api/job'
@@ -283,19 +313,19 @@ class LocbitPlugin(octoprint.plugin.StartupPlugin,
                 if request.args.get('autoprint_setting') == '1':
                         return flask.jsonify(result=self._settings.get(['autoPrintMode']))
                 
-		import subprocess
+		#import subprocess
    
-                horizontal_flip = self._settings.get(['camFlipHorizontal'])
+                #horizontal_flip = self._settings.get(['camFlipHorizontal'])
 
-                qr_script_path = '/home/pi/oprint/lib/python2.7/site-packages/octoprint_Locbit/qr.py'
-                subprocess_args = [qr_script_path]
+                #qr_script_path = '/home/pi/oprint/lib/python2.7/site-packages/octoprint_Locbit/qr.py'
+                #subprocess_args = [qr_script_path]
 
-                output = ''
+                #output = ''
                 
-                if horizontal_flip:
-                        subprocess_args.append('-f')
+                #if horizontal_flip:
+                #        subprocess_args.append('-f')
 
-                subprocess_args.append('-u')
+                #subprocess_args.append('-u')
 
                 current_url = request.url
                 split_url = urlsplit(current_url)
@@ -303,65 +333,75 @@ class LocbitPlugin(octoprint.plugin.StartupPlugin,
                 split_url_port = ''
                 
                 if split_url.port is not None:
-                        split_url_port = ":{}".format(split_url.port) 
+                        split_url_port = ":{}".format(split_url.port)
 
-                subprocess_args.append("{}://{}{}".format(split_url.scheme, split_url.hostname, split_url_port))
+                try:
 
-                print('#' * 50 + str(subprocess_args)) 
+                        qr_result = self.scan(camera_base_url="{}://{}{}".format(split_url.scheme, split_url.hostname, split_url_port))
+                except TimeoutError:
+                        return flask.jsonify(error="QR code read timeout")
+                except Exception as e:
+                        return flask.jsonify(error=str(e))
+
+                #subprocess_args.append("{}://{}{}".format(split_url.scheme, split_url.hostname, split_url_port))
+
+                #print('#' * 50 + str(subprocess_args)) 
                 
-                output = subprocess.check_output(subprocess_args)
+                #output = subprocess.check_output(subprocess_args)
                 
-                json_output = json.loads(output)
+                #json_output = json.loads(output)
                 
-                if 'error' in json_output:
-                       return flask.jsonify(error=json_output['error']) 
-                else:
-                       qr_result = json_output.get('result')
+                #if 'error' in json_output:
+                #       return flask.jsonify(error=json_output['error']) 
+                #else:
+                #       qr_result = json_output.get('result')
                        
-                       if qr_result is None:
-                               return flask.jsonify(error="QR code read failure. Uknown error.") 
+                #       if qr_result is None:
+                #               return flask.jsonify(error="QR code read failure. Uknown error.") 
                        
-                       qr_result = qr_result.split(",")
+                qr_result = qr_result.split(",")
  
-		       if len(qr_result) == 5:
-                               return_result = {'material': qr_result[0],
-                                                'diameter': qr_result[1],
-                                                'color': qr_result[2],
-                                                'length': qr_result[3],
-                                                'muid': qr_result[4]}
+		if len(qr_result) == 5:
+                        
+                        return_result = {'material': qr_result[0],
+                                         'diameter': qr_result[1],
+                                         'color': qr_result[2],
+                                         'length': qr_result[3],
+                                         'muid': qr_result[4]}
                                
-                               # Initialize plugin settings with data from QR code
-                               octoprint.plugin.SettingsPlugin.on_settings_save(self, return_result)
-                               octoprint.plugin.SettingsPlugin.on_settings_save(self, {'initial_length': return_result['length']})
+                        # Initialize plugin settings with data from QR code
+                        octoprint.plugin.SettingsPlugin.on_settings_save(self, return_result)
+                        octoprint.plugin.SettingsPlugin.on_settings_save(self, {'initial_length': return_result['length']})
 
-                               try:
+                        try:
 
-                                       stored_length = self._get_spool_length(return_result['muid'])
+                                stored_length = self._get_spool_length(return_result['muid'])
 
-                                       # If the length of the spool already exists, update the settings,
-                                       # otherwise, post the initial spool data
-                                       if stored_length is not None:
-                                               return_result['length'] = stored_length
-                                               octoprint.plugin.SettingsPlugin.on_settings_save(self, return_result)
-                                               octoprint.plugin.SettingsPlugin.on_settings_save(self, {'initial_length': return_result['length']})
-                                               octoprint.plugin.SettingsPlugin.on_settings_save(self, {'printProgress': ''})
-                                       else:
-                                               self._post_spool_data(return_result)
+                                # If the length of the spool already exists, update the settings,
+                                # otherwise, post the initial spool data
+                                if stored_length is not None:
+                                        return_result['length'] = stored_length
+                                        octoprint.plugin.SettingsPlugin.on_settings_save(self, return_result)
+                                        octoprint.plugin.SettingsPlugin.on_settings_save(self, {'initial_length': return_result['length']})
+                                        octoprint.plugin.SettingsPlugin.on_settings_save(self, {'printProgress': ''})
+                                else:
+                                        self._post_spool_data(return_result)
 
-                               except Exception as e:
-                                       return flask.jsonify(result=return_result, locbit_error=str(e))
+                        except Exception as e:
+                                 return flask.jsonify(result=return_result, locbit_error=str(e))
 
-                               try:
-                                       self._set_default_slice_profile(return_result['muid'][0:7])
+                        try:
+                                 self._set_default_slice_profile(return_result['muid'][0:7])
 
-                               except Exception as e:
-                                       return flask.jsonify(result=return_result, locbit_error="Setting profile {} as default failed, check to see if it exists".format(return_result['muid']))
+                        except Exception as e:
+                                 return flask.jsonify(result=return_result, locbit_error="Setting profile {} as default failed, check to see if it exists".format(return_result['muid']))
 
-                               return_result['length'] = "{0:.3f}".format(float(return_result['length']))
+                        return_result['length'] = "{0:.3f}".format(float(return_result['length']))
 
-		               return flask.jsonify(result=return_result)
-		       else:
-		               return flask.jsonify(error="Invalid QR code")
+                        return flask.jsonify(result=return_result)
+		else:
+                         
+		        return flask.jsonify(error="Invalid QR code")
 
         def _update_profile_event_stats(self, printer_event):
 
