@@ -45,7 +45,7 @@ plugin_requires = ['SimpleCV==1.3']
 plugin_additional_data = []
 
 # Any additional python packages you need to install with your plugin that are not contained in <plugin_package>.*
-plugin_additional_packages = ['svgwrite', 'timeout-decorator']
+plugin_additional_packages = []
 
 # Any python packages within <plugin_package>.* you do NOT want to install with your plugin
 plugin_ignored_packages = []
@@ -92,7 +92,8 @@ if len(additional_setup_parameters):
 	from octoprint.util import dict_merge
 	setup_parameters = dict_merge(setup_parameters, additional_setup_parameters)
 
-subprocess.check_call("sudo apt-get update && sudo apt-get install ipython python-opencv python-scipy python-numpy python-setuptools python-pip python-pygame python-zbar", shell=True)
+subprocess.check_call("sudo apt-get update && sudo apt-get install -y ipython python-opencv python-scipy python-numpy python-setuptools python-pip python-pygame python-zbar", shell=True)
+subprocess.check_call("sudo pip install svgwrite timeout-decorator", shell=True)
 
 setup(**setup_parameters)
 
