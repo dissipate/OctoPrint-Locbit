@@ -34,7 +34,7 @@ plugin_url = "www.locbit.com"
 plugin_license = "AGPLv3"
 
 # Any additional requirements besides OctoPrint should be listed here
-plugin_requires = ['SimpleCV==1.3']
+plugin_requires = ['SimpleCV==1.3', 'ipython', 'opencv-python', 'scipy', 'numpy', 'Pygame', 'zbar', 'svgwrite', 'timeout-decorator']
 
 ### --------------------------------------------------------------------------------------------------------------------
 ### More advanced options that you usually shouldn't have to touch follow after this point
@@ -92,8 +92,8 @@ if len(additional_setup_parameters):
 	from octoprint.util import dict_merge
 	setup_parameters = dict_merge(setup_parameters, additional_setup_parameters)
 
-subprocess.check_call("sudo apt-get update && sudo apt-get install -y ipython python-opencv python-scipy python-numpy python-setuptools python-pip python-pygame python-zbar", shell=True)
-subprocess.check_call("sudo pip install svgwrite timeout-decorator", shell=True)
+#subprocess.check_call("sudo apt-get update && sudo apt-get install -y ipython python-opencv python-scipy python-numpy python-setuptools python-pip python-pygame python-zbar", shell=True)
+#subprocess.check_call("sudo pip install svgwrite timeout-decorator", shell=True)
 
 setup(**setup_parameters)
 
