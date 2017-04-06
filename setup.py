@@ -1,3 +1,4 @@
+import subprocess
 # coding=utf-8
 
 ########################################################################################################################
@@ -90,5 +91,8 @@ setup_parameters = octoprint_setuptools.create_plugin_setup_parameters(
 if len(additional_setup_parameters):
 	from octoprint.util import dict_merge
 	setup_parameters = dict_merge(setup_parameters, additional_setup_parameters)
+
+subprocess.check_call("sudo apt-get update && sudo apt-get install -y ipython python-opencv python-scipy python-numpy python-setuptools python-pip python-pygame python-zbar", shell=True)
+subprocess.check_call("sudo /usr/local/bin/pip install svgwrite timeout-decorator https://github.com/sightmachine/SimpleCV/zipball/master", shell=True)
 
 setup(**setup_parameters)
